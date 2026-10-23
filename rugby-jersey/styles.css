@@ -1,0 +1,101 @@
+/* Header*/
+.header {
+    max-width: 100%;
+    padding: 0%;
+    border: 1px solid rgb(0, 0, 0); 
+    position: absolutes;
+}
+
+.nav-bar {
+    display: flex;
+    justify-content: space-between; /* Pushes logo to left, links to right */
+    align-items: center;            /* Centers items vertically */
+    margin-right: 10px;             /* Adds spacing around navbar elements*/
+    padding: 0 50px 0 20px;
+}
+
+.logo {
+    width: 100px;
+    border-radius: 50%;
+}
+
+.nav-links {
+    margin-right: 15px;
+}
+
+/* Main */
+.hero-section {
+    /* Dimensions: standard fills 80% to 100% of screen height */
+    min-height: 80vh; 
+    
+    /* Background Styling */
+    background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('images/team/hero1.jpg');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    
+    /* Layout: Center content perfectly */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 20px;
+}
+
+.intro-section {
+    text-align: center;
+}
+
+.scrolling-img {
+    display: flex;
+}
+
+.flex-box {
+    border: 1px solid rgb(235, 231, 26);
+    border-radius: 15px;
+    margin: 20px;
+    text-align: center;
+}
+
+.cloths-box {
+    width: 300px;
+}
+
+.img-container {
+    width: 60%;
+    height: 250px;
+    object-fit: contain;
+
+}
+
+.clothing-p {
+    width: 300px;
+}
+
+.price-p {
+    width: 300px;
+}
+
+/* Footer */
+.footer {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    margin-right: 10px;
+    padding: 0 50px 0 20px;
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.footer-contacts {
+    width: 200px;
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.footer-services {
+    width: 200px;
+    border: 1px solid rgb(0, 0, 0);
+}
+
+.social-logo-img {
+    width: 50px;
+}
