@@ -1,0 +1,473 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Docly — Free DOCX to PDF Converter</title>
+    <meta name="description" content="Convert DOCX files to PDF instantly in your browser. Free, private, no signup — your files never leave your device." />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.2/html2pdf.bundle.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet" />
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'system-ui', 'sans-serif'],
+              serif: ['"Source Serif 4"', 'Georgia', 'serif'],
+            },
+            colors: {
+              brand: {
+                50: '#eef6ff',
+                100: '#d9eaff',
+                200: '#bcdaff',
+                300: '#8ec2ff',
+                400: '#599fff',
+                500: '#337bff',
+                600: '#1d5cf5',
+                700: '#1747e1',
+                800: '#193cb6',
+                900: '#1a388f',
+              },
+              ink: {
+                50: '#f6f7f9',
+                100: '#eceef2',
+                200: '#d5d9e2',
+                300: '#b0b8c9',
+                400: '#8591a9',
+                500: '#67738c',
+                600: '#525c74',
+                700: '#434b5e',
+                800: '#3a4051',
+                900: '#343846',
+              },
+            },
+            boxShadow: {
+              soft: '0 1px 2px rgba(16,24,40,0.04), 0 1px 3px rgba(16,24,40,0.06)',
+              lift: '0 12px 40px -12px rgba(29,92,245,0.25), 0 4px 12px -4px rgba(16,24,40,0.08)',
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      html { scroll-behavior: smooth; }
+      body { font-family: 'Inter', system-ui, sans-serif; }
+      .font-serif { font-family: 'Source Serif 4', Georgia, serif; }
+
+      .dropzone-active { animation: pop 0.25s ease-out; }
+      @keyframes pop {
+        0% { transform: scale(0.98); }
+        60% { transform: scale(1.01); }
+        100% { transform: scale(1); }
+      }
+
+      .progress-ring { transition: stroke-dashoffset 0.3s ease; }
+
+      .preview-scroll::-webkit-scrollbar { width: 10px; }
+      .preview-scroll::-webkit-scrollbar-track { background: transparent; }
+      .preview-scroll::-webkit-scrollbar-thumb { background: #d5d9e2; border-radius: 9999px; border: 2px solid #fff; }
+      .preview-scroll::-webkit-scrollbar-thumb:hover { background: #b0b8c9; }
+
+      .gradient-mesh {
+        background-color: #f7f9fc;
+        background-image:
+          radial-gradient(at 12% 8%, rgba(51,123,255,0.10) 0px, transparent 50%),
+          radial-gradient(at 88% 0%, rgba(139,197,255,0.14) 0px, transparent 45%),
+          radial-gradient(at 80% 100%, rgba(51,123,255,0.06) 0px, transparent 50%);
+      }
+
+      /* Clean, readable document preview styles */
+      .docx-preview { color: #1f2937; line-height: 1.6; font-size: 16px; }
+      .docx-preview h1 { font-size: 1.9em; font-weight: 700; margin: 0.6em 0 0.4em; line-height: 1.2; color: #111827; }
+      .docx-preview h2 { font-size: 1.5em; font-weight: 700; margin: 0.7em 0 0.4em; line-height: 1.25; color: #111827; }
+      .docx-preview h3 { font-size: 1.25em; font-weight: 600; margin: 0.7em 0 0.35em; color: #1f2937; }
+      .docx-preview h4 { font-size: 1.1em; font-weight: 600; margin: 0.6em 0 0.3em; color: #1f2937; }
+      .docx-preview p { margin: 0 0 0.85em; }
+      .docx-preview ul, .docx-preview ol { margin: 0 0 0.85em; padding-left: 1.6em; }
+      .docx-preview li { margin: 0.25em 0; }
+      .docx-preview a { color: #1d5cf5; text-decoration: underline; }
+      .docx-preview table { border-collapse: collapse; width: 100%; margin: 0 0 0.85em; font-size: 0.95em; }
+      .docx-preview th, .docx-preview td { border: 1px solid #d5d9e2; padding: 0.5em 0.75em; text-align: left; }
+      .docx-preview th { background: #f6f7f9; font-weight: 600; }
+      .docx-preview img { max-width: 100%; height: auto; margin: 0.5em 0; }
+      .docx-preview blockquote { border-left: 3px solid #d5d9e2; padding-left: 1em; margin: 0 0 0.85em; color: #525c74; font-style: italic; }
+      .docx-preview hr { border: none; border-top: 1px solid #eceef2; margin: 1.5em 0; }
+
+      .fade-in { animation: fadeIn 0.4s ease both; }
+      @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+    <meta property="og:image" content="https://bolt.new/static/og_default.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
+  </head>
+  <body class="gradient-mesh min-h-screen text-ink-800 antialiased">
+    <!-- Header -->
+    <header class="sticky top-0 z-30 backdrop-blur-md bg-white/70 border-b border-ink-100">
+      <div class="max-w-6xl mx-auto px-5 sm:px-6 h-16 flex items-center justify-between">
+        <a href="#" class="flex items-center gap-2.5 group">
+          <span class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 grid place-items-center shadow-soft group-hover:shadow-lift transition-shadow">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 14l2 2 4-4"/></svg>
+          </span>
+          <span class="text-lg font-bold tracking-tight text-ink-900">Docly</span>
+        </a>
+        <div class="hidden sm:flex items-center gap-6 text-sm text-ink-500">
+          <span class="flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            100% private
+          </span>
+          <span class="flex items-center gap-1.5">
+            <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+            No signup
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Hero -->
+    <section class="max-w-6xl mx-auto px-5 sm:px-6 pt-12 sm:pt-16 pb-6 text-center">
+      <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold mb-5 border border-brand-100">
+        <span class="w-1.5 h-1.5 rounded-full bg-brand-500 animate-pulse"></span>
+        Runs entirely in your browser
+      </div>
+      <h1 class="text-4xl sm:text-5xl font-extrabold tracking-tight text-ink-900 leading-tight">
+        Turn <span class="text-brand-600">DOCX</span> into <span class="text-brand-600">PDF</span><br class="hidden sm:block" /> in seconds.
+      </h1>
+      <p class="mt-4 text-lg text-ink-500 max-w-xl mx-auto">
+        Drag in a Word document and download a clean PDF. No uploads, no servers, no waiting — your file never leaves your computer.
+      </p>
+    </section>
+
+    <!-- Converter Card -->
+    <main class="max-w-3xl mx-auto px-5 sm:px-6 pb-20">
+      <div class="bg-white rounded-3xl shadow-lift border border-ink-100 overflow-hidden">
+        <!-- Dropzone / States -->
+        <div id="converter" class="p-6 sm:p-8">
+          <!-- Idle state -->
+          <div id="state-idle">
+            <label id="dropzone" for="fileInput" class="dropzone block cursor-pointer rounded-2xl border-2 border-dashed border-ink-200 bg-ink-50/50 hover:bg-brand-50/40 hover:border-brand-300 transition-colors duration-200 px-6 py-12 sm:py-14 text-center">
+              <div class="w-16 h-16 mx-auto rounded-2xl bg-brand-50 grid place-items-center mb-4 group-hover:scale-105 transition-transform">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <p class="text-base font-semibold text-ink-800">Drag &amp; drop your .docx file here</p>
+              <p class="text-sm text-ink-400 mt-1">or <span class="text-brand-600 font-medium underline underline-offset-2">browse files</span></p>
+              <p class="text-xs text-ink-400 mt-4">Word .docx only · Max 50&nbsp;MB</p>
+              <input id="fileInput" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" class="hidden" />
+            </label>
+          </div>
+
+          <!-- Dragging-over state -->
+          <div id="state-dragging" class="hidden">
+            <div class="dropzone-active rounded-2xl border-2 border-brand-400 bg-brand-50 px-6 py-12 sm:py-14 text-center">
+              <div class="w-16 h-16 mx-auto rounded-2xl bg-brand-500 grid place-items-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              </div>
+              <p class="text-base font-semibold text-brand-700">Drop it to convert</p>
+              <p class="text-sm text-brand-600 mt-1">Release your file anywhere in this box</p>
+            </div>
+          </div>
+
+          <!-- Processing state -->
+          <div id="state-processing" class="hidden text-center py-10">
+            <div class="relative w-20 h-20 mx-auto mb-5">
+              <svg class="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                <circle cx="40" cy="40" r="34" stroke="#eceef2" stroke-width="6" fill="none" />
+                <circle id="progressRing" class="progress-ring" cx="40" cy="40" r="34" stroke="#1d5cf5" stroke-width="6" fill="none" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" />
+              </svg>
+              <div class="absolute inset-0 grid place-items-center">
+                <span id="progressText" class="text-sm font-bold text-brand-600">0%</span>
+              </div>
+            </div>
+            <p class="text-base font-semibold text-ink-800" id="progressLabel">Reading your document…</p>
+            <p class="text-sm text-ink-400 mt-1">Hang tight — this stays on your device.</p>
+          </div>
+
+          <!-- File loaded / preview state -->
+          <div id="state-loaded" class="hidden">
+            <div class="flex items-center justify-between gap-3 mb-5 flex-wrap">
+              <div class="flex items-center gap-3 min-w-0">
+                <div class="w-11 h-11 shrink-0 rounded-xl bg-brand-50 grid place-items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 text-brand-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="min-w-0">
+                  <p id="fileName" class="font-semibold text-ink-900 truncate max-w-[220px] sm:max-w-xs">document.docx</p>
+                  <p id="fileMeta" class="text-sm text-ink-400">— · parsed</p>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <button id="resetBtn" class="px-3.5 py-2 rounded-xl text-sm font-medium text-ink-600 bg-ink-50 hover:bg-ink-100 transition-colors">New file</button>
+                <button id="convertBtn" class="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-brand-600 hover:bg-brand-700 shadow-soft transition-colors inline-flex items-center gap-1.5">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Download PDF
+                </button>
+              </div>
+            </div>
+
+            <!-- Preview -->
+            <div class="rounded-2xl border border-ink-100 bg-ink-50/40 overflow-hidden">
+              <div class="flex items-center justify-between px-4 py-2.5 border-b border-ink-100 bg-white">
+                <span class="text-xs font-semibold uppercase tracking-wide text-ink-400">Document preview</span>
+                <span id="previewMeta" class="text-xs text-ink-400"></span>
+              </div>
+              <div id="previewContainer" class="preview-scroll docx-preview bg-white max-h-[420px] overflow-y-auto p-6 sm:p-8 font-serif"></div>
+            </div>
+          </div>
+
+          <!-- Error state -->
+          <div id="state-error" class="hidden text-center py-10">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-red-50 grid place-items-center mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            </div>
+            <p class="text-base font-semibold text-ink-800">Couldn't read that file</p>
+            <p id="errorMsg" class="text-sm text-ink-500 mt-1 max-w-sm mx-auto">Something went wrong. Make sure it's a valid .docx file.</p>
+            <button id="errorRetryBtn" class="mt-5 px-4 py-2 rounded-xl text-sm font-semibold text-brand-600 bg-brand-50 hover:bg-brand-100 transition-colors">Try another file</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Trust badges -->
+      <div class="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="bg-white/60 border border-ink-100 rounded-2xl p-4 flex items-start gap-3">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-emerald-50 grid place-items-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span>
+          <div><p class="font-semibold text-sm text-ink-800">Stays on your device</p><p class="text-xs text-ink-400 mt-0.5">No file is ever uploaded to a server.</p></div>
+        </div>
+        <div class="bg-white/60 border border-ink-100 rounded-2xl p-4 flex items-start gap-3">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-brand-50 grid place-items-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-brand-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></span>
+          <div><p class="font-semibold text-sm text-ink-800">Instant conversion</p><p class="text-xs text-ink-400 mt-0.5">Parsed and rendered in seconds.</p></div>
+        </div>
+        <div class="bg-white/60 border border-ink-100 rounded-2xl p-4 flex items-start gap-3">
+          <span class="w-9 h-9 shrink-0 rounded-lg bg-amber-50 grid place-items-center"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-amber-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></span>
+          <div><p class="font-semibold text-sm text-ink-800">Free &amp; no signup</p><p class="text-xs text-ink-400 mt-0.5">Use it as much as you like.</p></div>
+        </div>
+      </div>
+    </main>
+
+    <!-- Hidden render container for html2pdf -->
+    <div id="pdfRenderHost" style="position:fixed; left:-99999px; top:0; width:800px;"></div>
+
+    <!-- Footer -->
+    <footer class="border-t border-ink-100 bg-white/50">
+      <div class="max-w-6xl mx-auto px-5 sm:px-6 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-ink-400">
+        <p>Docly — client-side DOCX to PDF converter.</p>
+        <p class="flex items-center gap-1.5">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4 text-emerald-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Your documents never leave your browser.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      (function () {
+        const $ = (id) => document.getElementById(id);
+        const states = {
+          idle: $('state-idle'),
+          dragging: $('state-dragging'),
+          processing: $('state-processing'),
+          loaded: $('state-loaded'),
+          error: $('state-error'),
+        };
+        const dropzone = $('dropzone');
+        const fileInput = $('fileInput');
+        const previewContainer = $('previewContainer');
+        const previewMeta = $('previewMeta');
+        const fileNameEl = $('fileName');
+        const fileMetaEl = $('fileMeta');
+        const errorMsg = $('errorMsg');
+        const progressRing = $('progressRing');
+        const progressText = $('progressText');
+        const progressLabel = $('progressLabel');
+        const pdfRenderHost = $('pdfRenderHost');
+
+        let currentFile = null;
+        let parsedHtml = '';
+
+        const RING_CIRC = 2 * Math.PI * 34; // ≈ 213.6
+
+        function showState(name) {
+          Object.keys(states).forEach((k) => states[k].classList.add('hidden'));
+          states[name].classList.remove('hidden');
+        }
+
+        function setProgress(pct, label) {
+          const clamped = Math.max(0, Math.min(100, pct));
+          progressRing.style.strokeDashoffset = String(RING_CIRC * (1 - clamped / 100));
+          progressText.textContent = Math.round(clamped) + '%';
+          if (label) progressLabel.textContent = label;
+        }
+
+        function formatBytes(bytes) {
+          if (bytes < 1024) return bytes + ' B';
+          if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+          return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function baseName(name) {
+          const dot = name.lastIndexOf('.');
+          return dot > 0 ? name.slice(0, dot) : name;
+        }
+
+        // Drag and drop
+        ['dragenter', 'dragover'].forEach((evt) =>
+          dropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            showState('dragging');
+          })
+        );
+        ['dragleave', 'drop'].forEach((evt) =>
+          dropzone.addEventListener(evt, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (evt === 'dragleave' && e.target !== dropzone) return;
+            if (evt === 'drop') {
+              const files = e.dataTransfer && e.dataTransfer.files;
+              if (files && files.length) handleFile(files[0]);
+              else showState('idle');
+            } else {
+              showState('idle');
+            }
+          })
+        );
+
+        // Also allow drop on the whole window so the active state stays correct
+        window.addEventListener('dragover', (e) => e.preventDefault());
+        window.addEventListener('drop', (e) => {
+          e.preventDefault();
+          const files = e.dataTransfer && e.dataTransfer.files;
+          if (files && files.length) handleFile(files[0]);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+          const files = e.target.files;
+          if (files && files.length) handleFile(files[0]);
+          fileInput.value = ''; // allow re-selecting same file
+        });
+
+        $('resetBtn').addEventListener('click', () => {
+          currentFile = null;
+          parsedHtml = '';
+          previewContainer.innerHTML = '';
+          showState('idle');
+        });
+
+        $('errorRetryBtn').addEventListener('click', () => showState('idle'));
+
+        $('convertBtn').addEventListener('click', generatePdf);
+
+        function handleFile(file) {
+          const name = (file && file.name) || '';
+          const isDocx =
+            name.toLowerCase().endsWith('.docx') ||
+            (file.type && file.type.indexOf('wordprocessingml') !== -1);
+
+          if (!isDocx) {
+            errorMsg.textContent = 'Please choose a .docx Word file. Older .doc files and other formats aren’t supported.';
+            showState('error');
+            return;
+          }
+          if (file.size > 50 * 1024 * 1024) {
+            errorMsg.textContent = 'That file is over 50 MB. Try a smaller document for reliable in-browser conversion.';
+            showState('error');
+            return;
+          }
+
+          currentFile = file;
+          fileNameEl.textContent = file.name;
+          fileMetaEl.textContent = formatBytes(file.size);
+          showState('processing');
+          setProgress(8, 'Reading your document…');
+
+          const reader = new FileReader();
+          reader.onerror = () => {
+            errorMsg.textContent = 'Could not read the file from disk. Please try again.';
+            showState('error');
+          };
+          reader.onload = function (e) {
+            setProgress(35, 'Parsing Word document…');
+            const arrayBuffer = e.target.result;
+            // mammoth is loaded via CDN as global `mammoth`
+            mammoth
+              .convertToHtml({ arrayBuffer: arrayBuffer })
+              .then(function (result) {
+                setProgress(75, 'Rendering preview…');
+                parsedHtml = result.value || '<p><em>This document appears to be empty.</em></p>';
+                previewContainer.innerHTML = parsedHtml;
+                previewMeta.textContent = 'Live preview';
+                setProgress(100, 'Ready to convert');
+                setTimeout(() => showState('loaded'), 350);
+              })
+              .catch(function (err) {
+                errorMsg.textContent =
+                  'The file could not be parsed as a valid Word document. ' + (err && err.message ? err.message : '');
+                showState('error');
+              });
+          };
+          reader.readAsArrayBuffer(file);
+        }
+
+        function generatePdf() {
+          if (!parsedHtml) return;
+          showState('processing');
+          setProgress(20, 'Preparing PDF layout…');
+
+          // Build a clean, print-optimized HTML doc in the off-screen host.
+          pdfRenderHost.innerHTML =
+            '<div id="pdfDoc" style="padding:0 0 8px 0; color:#1f2937; font-family:Georgia,serif; font-size:13pt; line-height:1.6;">' +
+            parsedHtml +
+            '</div>';
+
+          // Inject page-break helpers
+          const style = document.createElement('style');
+          style.textContent =
+            '#pdfDoc h1, #pdfDoc h2, #pdfDoc h3, #pdfDoc img, #pdfDoc table { page-break-inside: avoid; }' +
+            '#pdfDoc h1, #pdfDoc h2, #pdfDoc h3 { page-break-after: avoid; }' +
+            '#pdfDoc p, #pdfDoc li, #pdfDoc blockquote { orphans:2; widows:2; }' +
+            '#pdfDoc img { max-width:100%; }';
+          pdfRenderHost.appendChild(style);
+
+          const element = $('pdfDoc');
+          const outName = (currentFile ? baseName(currentFile.name) : 'document') + '.pdf';
+
+          const opt = {
+            margin: [15, 15, 18, 15], // top, left, bottom, right (mm)
+            filename: outName,
+            image: { type: 'jpeg', quality: 0.96 },
+            html2canvas: {
+              scale: 2,
+              useCORS: true,
+              backgroundColor: '#ffffff',
+              windowWidth: 800,
+            },
+            jsPDF: {
+              unit: 'mm',
+              format: 'a4',
+              orientation: 'portrait',
+              compress: true,
+            },
+            pagebreak: { mode: ['css', 'legacy'] },
+          };
+
+          setProgress(45, 'Rendering pages…');
+
+          html2pdf()
+            .set(opt)
+            .from(element)
+            .save()
+            .then(function () {
+              setProgress(100, 'Done!');
+              pdfRenderHost.innerHTML = '';
+              setTimeout(() => showState('loaded'), 400);
+            })
+            .catch(function (err) {
+              pdfRenderHost.innerHTML = '';
+              errorMsg.textContent = 'PDF generation failed. ' + (err && err.message ? err.message : 'Please try again.');
+              showState('error');
+            });
+        }
+      })();
+    </script>
+  </body>
+</html>
